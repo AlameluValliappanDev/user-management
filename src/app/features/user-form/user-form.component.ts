@@ -136,7 +136,13 @@ export class UserFormComponent implements OnInit {
   onSubmit() {
     if (this.form.invalid) return;
     this.saving = true;
-    const value = this.form.getRawValue();
+    const raw = this.form.getRawValue();
+    const value = {
+      name: raw.name ?? undefined,
+      email: raw.email ?? undefined,
+      role: raw.role ?? undefined,
+      status: raw.status ?? undefined,
+    };
     const request = this.isEdit
       ? this.userService.updateUser(this.userId, { ...value, createdAt: this.createdAt })
       : this.userService.createUser(value);
