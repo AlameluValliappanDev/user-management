@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
 import { User, LoginRequest, LoginResponse } from '../models/user.model';
 import { environment } from '../../../environments/environment';
 
@@ -31,7 +32,7 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return !!this.currentUser;
+    return !!this.currentUser && !!localStorage.getItem(TOKEN_KEY);
   }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
@@ -40,7 +41,8 @@ export class AuthService {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(response.user));
         localStorage.setItem(TOKEN_KEY, response.token);
         this.currentUserSubject.next(response.user);
-      })
+      }),
+      catchError(this.handleError)
     );
   }
 
@@ -49,5 +51,21 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
+  }
+
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let message = 'An unexpected error occurred. Please try again.';
+
+    if (error.status === 0) {
+      message = 'Unable to reach the server. Check your network connection.';
+    } else if (error.status === 400) {
+      message = error.error?.message ?? 'Invalid login request.';
+    } else if (error.status === 401) {
+      message = error.error?.message ?? 'Invalid email or password.';
+    } else if (error.status === 500) {
+      message = 'Server error. Please try again later.';
+    }
+
+    return throwError(() => new Error(message));
   }
 }

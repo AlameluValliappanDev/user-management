@@ -220,9 +220,15 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   loadUsers() {
-    this.userService.getUsers().subscribe(users => {
-      this.dataSource.data = users;
-      this.cdr.markForCheck();
+    this.userService.getUsers().subscribe({
+      next: users => {
+        this.dataSource.data = users;
+        this.cdr.markForCheck();
+      },
+      error: (err: Error) => {
+        this.snackBar.open(err.message, 'Dismiss', { duration: 4000 });
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -252,10 +258,15 @@ export class UserListComponent implements OnInit, AfterViewInit {
   }
 
   deleteUser(user: User) {
-    this.userService.deleteUser(user.id).subscribe(() => {
-      this.dataSource.data = this.dataSource.data.filter(u => u.id !== user.id);
-      this.cdr.markForCheck();
-      this.snackBar.open(`${user.name} deleted`, 'Dismiss', { duration: 3000 });
+    this.userService.deleteUser(user.id).subscribe({
+      next: () => {
+        this.dataSource.data = this.dataSource.data.filter(u => u.id !== user.id);
+        this.cdr.markForCheck();
+        this.snackBar.open(`${user.name} deleted`, 'Dismiss', { duration: 3000 });
+      },
+      error: (err: Error) => {
+        this.snackBar.open(err.message, 'Dismiss', { duration: 4000 });
+      }
     });
   }
 }

@@ -37,7 +37,9 @@ import { UserRole, UserStatus } from '../../core/models/user.model';
             <mat-spinner diameter="40"></mat-spinner>
           </div>
 
-          <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!loading">
+          <p class="error-msg" *ngIf="errorMsg">{{ errorMsg }}</p>
+
+          <form [formGroup]="form" (ngSubmit)="onSubmit()" *ngIf="!loading && !errorMsg">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Full Name</mat-label>
               <input matInput formControlName="name" placeholder="John Smith" />
@@ -52,6 +54,16 @@ import { UserRole, UserStatus } from '../../core/models/user.model';
               <mat-icon matSuffix>email</mat-icon>
               <mat-error *ngIf="form.get('email')?.hasError('required')">Email is required</mat-error>
               <mat-error *ngIf="form.get('email')?.hasError('email')">Invalid email</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ isEdit ? 'New Password' : 'Password' }}</mat-label>
+              <input matInput formControlName="password" type="password"
+                     [placeholder]="isEdit ? 'Leave blank to keep current' : 'Enter password'" />
+              <mat-icon matSuffix>lock</mat-icon>
+              <mat-error *ngIf="form.get('password')?.hasError('required')">Password is required</mat-error>
+              <mat-error *ngIf="form.get('password')?.hasError('minlength')">Minimum 6 characters</mat-error>
+              <mat-hint *ngIf="isEdit">Leave blank to keep the current password</mat-hint>
             </mat-form-field>
 
             <div class="row-fields">
@@ -95,6 +107,7 @@ import { UserRole, UserStatus } from '../../core/models/user.model';
     .half-width { flex: 1; }
     .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
     .loading-state { display: flex; justify-content: center; padding: 48px; }
+    .error-msg { color: #f44336; font-size: 14px; padding: 16px 0; }
     mat-spinner { display: inline-block; margin-right: 8px; }
   `]
 })
@@ -109,6 +122,7 @@ export class UserFormComponent implements OnInit {
   form = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
     email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
     role: ['user' as UserRole, Validators.required],
     status: ['active' as UserStatus, Validators.required]
   });
@@ -118,17 +132,27 @@ export class UserFormComponent implements OnInit {
   createdAt = '';
   loading = false;
   saving = false;
+  errorMsg = '';
 
   ngOnInit() {
     this.userId = this.route.snapshot.params['id'];
     if (this.userId) {
       this.isEdit = true;
       this.loading = true;
-      this.userService.getUserById(this.userId).subscribe(user => {
-        this.createdAt = user.createdAt;
-        this.form.patchValue(user);
-        this.loading = false;
-        this.cdr.markForCheck();
+      this.form.get('password')?.clearValidators();
+      this.form.get('password')?.updateValueAndValidity();
+      this.userService.getUserById(this.userId).subscribe({
+        next: user => {
+          this.createdAt = user.createdAt;
+          this.form.patchValue(user);
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: (err: Error) => {
+          this.errorMsg = err.message;
+          this.loading = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }
@@ -140,6 +164,7 @@ export class UserFormComponent implements OnInit {
     const value = {
       name: raw.name ?? undefined,
       email: raw.email ?? undefined,
+      password: raw.password ?? undefined,
       role: raw.role ?? undefined,
       status: raw.status ?? undefined,
     };
@@ -155,8 +180,8 @@ export class UserFormComponent implements OnInit {
         );
         this.router.navigate(['/users']);
       },
-      error: () => {
-        this.snackBar.open('An error occurred', 'Dismiss', { duration: 3000 });
+      error: (err: Error) => {
+        this.snackBar.open(err.message, 'Dismiss', { duration: 4000 });
         this.saving = false;
         this.cdr.markForCheck();
       }

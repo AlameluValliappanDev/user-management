@@ -108,8 +108,8 @@ export class LoginComponent {
     const { email, password } = this.loginForm.value;
     this.auth.login({ email: email!, password: password! }).subscribe({
       next: () => this.router.navigate(['/users']),
-      error: () => {
-        this.errorMsg = 'Invalid email or password';
+      error: (err: Error) => {
+        this.errorMsg = err.message;
         this.loading = false;
         this.cdr.markForCheck();
       }
