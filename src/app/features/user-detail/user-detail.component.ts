@@ -25,7 +25,13 @@ import { User } from '../../core/models/user.model';
         <mat-spinner></mat-spinner>
       </div>
 
-      <ng-container *ngIf="user && !loading">
+      <div *ngIf="errorMsg && !loading" class="error-state">
+        <mat-icon color="warn">error_outline</mat-icon>
+        <p>{{ errorMsg }}</p>
+        <button mat-stroked-button routerLink="/users">Back to Users</button>
+      </div>
+
+      <ng-container *ngIf="user && !loading && !errorMsg">
         <div class="back-link">
           <button mat-stroked-button routerLink="/users">
             <mat-icon>arrow_back</mat-icon> Back to Users
@@ -90,6 +96,7 @@ import { User } from '../../core/models/user.model';
     .detail-wrapper { max-width: 700px; margin: 0 auto; }
     .back-link { margin-bottom: 20px; }
     .loading { display: flex; justify-content: center; padding: 80px; }
+    .error-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 80px; color: #c62828; }
     .profile-header { display: flex; align-items: center; gap: 24px; padding: 24px 0; flex-wrap: wrap; }
     .big-avatar {
       width: 80px; height: 80px; border-radius: 50%;
@@ -117,6 +124,7 @@ import { User } from '../../core/models/user.model';
 export class UserDetailComponent implements OnInit {
   user: User | null = null;
   loading = true;
+  errorMsg = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -129,7 +137,7 @@ export class UserDetailComponent implements OnInit {
     const id = this.route.snapshot.params['id'];
     this.userService.getUserById(id).subscribe({
       next: user => { this.user = user; this.loading = false; this.cdr.markForCheck(); },
-      error: () => { this.loading = false; this.cdr.markForCheck(); }
+      error: (err: Error) => { this.errorMsg = err.message; this.loading = false; this.cdr.markForCheck(); }
     });
   }
 }

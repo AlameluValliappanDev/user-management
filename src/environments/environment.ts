@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'api',
-  mockApi: true,
-  mockDelay: 300
+  apiUrl: 'http://localhost:8080/api',
+  mockApi: false,
+  mockDelay: 0
 };
